@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ophthalmology Visit Scheduler | حاسبة مواعيد العيون</title>
-  <meta name="description" content="Compute the next ophthalmology visit based on condition, age (or age group), and last visit date. Arabic/English." />
+  <title>Ophth-Scheduler | حاسبة مواعيد العيون</title>
+  <meta name="description" content="Ophthalmology visit scheduler in Arabic/English with diabetes severity, anti-VEGF, HbA1c, GLP-1, retinal laser, and more." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,13 +14,11 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
-    html { scroll-behavior: smooth; }
-    .card { @apply bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-lg rounded-2xl border border-gray-200 dark:border-slate-700; }
-    .chip { @apply inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800; }
-    .btn { @apply px-4 py-2 rounded-xl border bg-white text-slate-700 hover:bg-slate-50 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700; }
-    .error-text { @apply text-rose-600 dark:text-rose-300 text-xs mt-1; }
-    .invalid { @apply border-rose-500 ring-4 ring-rose-200 dark:ring-rose-900/40; }
-    @media print { html { color-scheme: light; } body { background: white !important; } .card { box-shadow: none; } .no-print { display: none !important; } }
+    html { scroll-behavior: smooth; } /* default 100% */
+    .error-text{color:#dc2626;font-size:12px;margin-top:.25rem}
+    .invalid{outline:0;box-shadow:0 0 0 4px rgba(244,63,94,.25);border-color:#ef4444}
+    @media print{html{color-scheme:light}body{background:#fff!important}.no-print{display:none!important}}
+    input[type="range"]{accent-color: currentColor;}
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-indigo-50 text-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 dark:text-slate-100">
@@ -29,51 +27,56 @@
       <h1 id="title" class="text-2xl md:text-3xl font-bold">حاسبة مواعيد زيارة طبيب العيون</h1>
       <div class="flex flex-wrap items-center gap-2">
         <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600">
-          <button id="lang-ar" class="font-medium" aria-pressed="true">العربية</button>
+          <button id="lang-ar" class="font-medium" type="button" onclick="setLang('ar')">العربية</button>
           <span class="mx-1">|</span>
-          <button id="lang-en">English</button>
+          <button id="lang-en" type="button" onclick="setLang('en')">English</button>
         </div>
         <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600" title="Theme">
-          <button id="theme-light" class="font-medium">Light</button>
+          <button id="theme-light" class="font-medium" type="button" onclick="setTheme('light')">Light</button>
           <span class="mx-1">/</span>
-          <button id="theme-dark">Dark</button>
+          <button id="theme-dark" type="button" onclick="setTheme('dark')">Dark</button>
         </div>
+        <!-- Text size slider -->
+        <div class="flex flex-col">
+          <div id="fontControls" dir="ltr" class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600" title="Text size">
+            <span id="fontMinus" class="select-none">A−</span>
+            <input id="fontScale" dir="ltr" type="range" min="80" max="170" step="5" value="100" class="w-28 align-middle" oninput="setFontScale(this.value)" />
+            <span id="fontPlus" class="select-none">A+</span>
+            <span id="fontPct" class="tabular-nums min-w-[3ch] text-xs text-slate-600 dark:text-slate-300">100%</span>
+          </div>
+          <div id="fontHelp" class="text-[11px] text-slate-600 dark:text-slate-300 mt-1"></div>
+        </div>
+        <!-- /Text size slider -->
       </div>
     </div>
-    <p id="subtitle" class="mt-2 text-slate-600 dark:text-slate-300">اختر الحالات، أدخل عمرك أو فئتك العمرية وتاريخ آخر زيارة، وسنحسب أقرب موعد.</p>
+    <p id="subtitle" class="mt-2 text-slate-600 dark:text-slate-300">اختر الحالات، أدخل عمرك/فئتك العمرية وتاريخ آخر زيارة، وسنحسب أقرب موعد.</p>
   </header>
 
   <main class="max-w-5xl mx-auto px-4 py-6">
-
-    <!-- CONTACT BOX (only addition) -->
+    <!-- CONTACT BOX -->
     <div class="mb-4">
-      <details class="card p-4 w-full sm:w-auto sm:min-w-[260px] ml-auto">
-        <summary class="cursor-pointer select-none text-sm font-medium flex items-center justify-between">
-          تواصل
-          <span aria-hidden="true">▾</span>
+      <details class="bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-lg rounded-2xl border border-gray-200 dark:border-slate-700 p-4 w-full sm:w-auto sm:min-w-[260px] ml-auto">
+        <summary id="contactSummary" class="cursor-pointer select-none text-sm font-medium flex items-center justify-between">
+          تواصل <span aria-hidden="true">▾</span>
         </summary>
         <div class="mt-3 text-sm space-y-1">
-          <div>البريد الإلكتروني:
-            <a href="mailto:Sultan.Alhassan@hotmail.com" class="underline break-all">
-              <span dir="ltr">Sultan.Alhassan@hotmail.com</span>
-            </a>
+          <div><span id="contactEmailLabel">البريد الإلكتروني</span>:
+            <a href="mailto:Sultan.Alhassan@hotmail.com" class="underline break-all" dir="ltr">Sultan.Alhassan@hotmail.com</a>
           </div>
-          <div>الهاتف:
-            <a href="tel:+966564215644" class="underline">
-              <span dir="ltr">+966564215644</span>
-            </a>
+          <div><span id="contactPhoneLabel">الهاتف</span>:
+            <a href="tel:+966564215644" class="underline" dir="ltr">+966564215644</a>
           </div>
         </div>
       </details>
     </div>
     <!-- END CONTACT BOX -->
 
-    <section class="card p-5 md:p-6">
-      <form id="schedulerForm" class="space-y-6">
+    <section class="bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-lg rounded-2xl border border-gray-200 dark:border-slate-700 p-5 md:p-6">
+      <form id="schedulerForm" class="space-y-6" novalidate>
         <div class="grid md:grid-cols-2 gap-4">
           <div class="space-y-3">
             <div class="flex items-center gap-2">
-              <input id="ageGroupToggle" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              <input id="ageGroupToggle" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" onclick="toggleAgeMode()" />
               <label for="ageGroupToggle" id="lblAgeGroupToggle" class="text-sm">استخدام الفئة العمرية بدلاً من تاريخ الميلاد</label>
             </div>
             <div id="dobWrap" class="space-y-2">
@@ -93,46 +96,56 @@
               <p id="helpAgeGroup" class="text-xs text-slate-500">اختر فقط إذا لم ترغب بإدخال تاريخ الميلاد.</p>
             </div>
           </div>
+
+          <!-- Last visit + No-visit option -->
           <div class="space-y-2" id="lastVisitWrap">
-            <label for="lastVisit" class="block text-sm font-medium"><span id="lblLastVisit">تاريخ آخر زيارة لطبيب العيون</span> <span class="text-rose-600" aria-hidden="true">*</span></label>
-            <input id="lastVisit" name="lastVisit" type="date" required class="w-full rounded-2xl border-2 border-slate-300/90 dark:border-slate-600 bg-white dark:bg-slate-800 h-12 text-base px-4 focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 focus:border-indigo-600" aria-describedby="lastVisitHelp lastVisitError" />
+            <label for="lastVisit" class="block text-sm font-medium">
+              <span id="lblLastVisit">تاريخ آخر زيارة لطبيب العيون</span> <span class="text-rose-600" aria-hidden="true">*</span>
+            </label>
+            <input id="lastVisit" name="lastVisit" type="date" class="w-full rounded-2xl border-2 border-slate-300/90 dark:border-slate-600 bg-white dark:bg-slate-800 h-12 text-base px-4 focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 focus:border-indigo-600" aria-describedby="lastVisitHelp lastVisitError" />
+            <label class="inline-flex items-center gap-2 text-sm mt-1">
+              <input id="noOphthVisit" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" onclick="onNoVisitToggle()" />
+              <span id="lblNoOphthVisit">لا توجد لدي زيارات سابقة لطبيب العيون</span>
+            </label>
             <p id="helpLastVisit" class="text-xs text-slate-500">مثال: 2024-12-05. لا تقبل تاريخًا مستقبليًا.</p>
             <p id="lastVisitError" class="error-text hidden" aria-live="polite"></p>
           </div>
         </div>
 
-        <!-- Conditions searchable multi-select -->
+        <!-- Conditions -->
         <div>
           <h2 id="condHeader" class="text-lg font-semibold mb-2">اختر الحالات/الظروف لديك</h2>
           <p id="condHelper" class="text-sm text-slate-600 dark:text-slate-300 mb-3">يمكنك اختيار أكثر من حالة؛ سنعرض أقرب موعد.</p>
 
-          <div id="condMultiRoot" class="relative">
-            <div id="condControl" class="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 cursor-text">
-              <div id="selectedChips" class="flex flex-wrap gap-2"></div>
-              <input id="condSearch" type="text" class="flex-1 min-w-[10ch] bg-transparent outline-none text-sm placeholder-slate-400 dark:placeholder-slate-500" placeholder="ابحث عن الحالة..." />
-              <button id="clearConds" type="button" class="text-xs text-slate-500 hover:underline hidden">مسح</button>
-            </div>
-            <div id="condDropdown" class="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-xl hidden"></div>
+          <div class="grid sm:grid-cols-2 gap-2" id="condsBox">
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_t1dm" onclick="toggleExtra()" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_t1dm">السكري النوع الأول (بالغون)</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_t2dm" onclick="toggleExtra()" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_t2dm">السكري النوع الثاني (بالغون)</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_antiVEGF" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_antiVEGF">مضادات عامل نمو بطانة الأوعية الدموية ( حقن داخل العين )</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_hba1c" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_hba1c">السكر التراكمي أعلى من الطبيعي</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_glp1" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_glp1">استخدام أوزمبيك/مونجارُو</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_glauSus" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_glauSus">مشتبه ماء أزرق / ارتفاع ضغط العين</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_fhGlau" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_fhGlau">قرابة درجة أولى لمريض ماء أزرق</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_highMy" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_highMy">قصر نظر شديد (≤ −6.0D أو طول محوري &gt; 26 مم)</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_ted" onclick="toggleExtra()" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_ted">مرض عين درقي (غريفز)</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_retLaser" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_retLaser">إجراء ليزر للشبكية</span></label>
+            <label class="inline-flex items-start gap-2 text-sm"><input type="checkbox" id="c_noRisk" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="tx_noRisk">بالغون بلا عوامل خطورة</span></label>
           </div>
         </div>
 
-        <!-- Conditional fields (shown for some conditions) -->
+        <!-- Conditional extra fields -->
         <div id="conditionalFields" class="space-y-4 hidden">
-          <h3 id="extraHeader" class="font-medium">معلومات إضافية مطلوبة لبعض الحالات</h3>
-          <div id="extra-hcq" class="hidden">
-            <label id="lblHcqYears" class="block text-sm font-medium mb-1" for="hcqYears">سنوات استخدام هيدروكسي كلوروكين/كلوروكين</label>
-            <input id="hcqYears" type="number" min="0" step="1" class="w-full rounded-2xl border-2 border-slate-300/90 dark:border-slate-600 bg-white dark:bg-slate-800 h-12 text-base px-4 focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 focus:border-indigo-600" placeholder="6" />
-            <p id="helpHcq" class="text-xs text-slate-500 mt-1">فحص سنوي بعد 5 سنوات من الاستخدام.</p>
-          </div>
-          <div id="extra-tamox" class="hidden">
-            <label id="lblTamoxYears" class="block text-sm font-medium mb-1" for="tamoxYears">سنوات استخدام تاموكسيفين</label>
-            <input id="tamoxYears" type="number" min="0" step="1" class="w-full rounded-2xl border-2 border-slate-300/90 dark:border-slate-600 bg-white dark:bg-slate-800 h-12 text-base px-4 focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 focus:border-indigo-600" placeholder="3" />
-            <div class="mt-2 flex items-center gap-2">
-              <input id="tamoxHighDose" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-              <label id="lblTamoxHighDose" for="tamoxHighDose" class="text-sm">جرعة مرتفعة</label>
+          <!-- Diabetes severity -->
+          <div id="extra-dm-severity" class="hidden">
+            <label id="lblDmSeverity" class="block text-sm font-medium mb-1">شدة السكري (لاعتلال الشبكية)</label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="dmSeverity" value="severe" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="optSevere">شديد (زيارة خلال 3 أشهر)</span></label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="dmSeverity" value="moderate" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="optModerate">متوسط (خلال 6 أشهر)</span></label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="dmSeverity" value="mild" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="optMild">بسيط (خلال 9 أشهر)</span></label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="radio" name="dmSeverity" value="unknown" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span id="optUnknown">لا أعرف (سنة واحدة)</span></label>
             </div>
-            <p id="helpTamox" class="text-xs text-slate-500 mt-1">فحص سنوي إذا المدة &gt; 5 سنوات أو الجرعة مرتفعة.</p>
           </div>
+
+          <!-- Thyroid eye disease active? -->
           <div id="extra-ted" class="hidden">
             <div class="flex items-center gap-2">
               <input id="tedActive" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
@@ -140,34 +153,29 @@
             </div>
             <p id="helpTed" class="text-xs text-slate-500 mt-1">نشِط: كل 3–6 أشهر. مستقر: سنوي.</p>
           </div>
-          <div id="extra-t1dm" class="hidden">
-            <label id="lblT1Years" class="block text-sm font-medium mb-1" for="t1Years">سنوات منذ تشخيص سكري النوع الأول</label>
-            <input id="t1Years" type="number" min="0" step="1" class="w-full rounded-2xl border-2 border-slate-300/90 dark:border-slate-600 bg-white dark:bg-slate-800 h-12 text-base px-4 focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-900 focus:border-indigo-600" placeholder="4" />
-            <p id="helpT1" class="text-xs text-slate-500 mt-1">يبدأ الفحص بعد 5 سنوات من التشخيص، ثم سنويًا.</p>
-          </div>
         </div>
 
+        <!-- Buttons -->
         <div class="flex flex-wrap items-center gap-3 pt-2">
-          <button type="submit" id="btnCalc" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">احسب الزيارة القادمة</button>
-          <button type="button" id="resetBtn" class="btn">إعادة ضبط</button>
-          <button type="button" id="printBtn" class="btn ml-auto">طباعة/حفظ PDF</button>
+          <button type="button" id="btnCalc" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" onclick="onCalc()">احسب الزيارة القادمة</button>
+          <button type="button" id="resetBtn" class="px-4 py-2 rounded-xl border bg-white text-slate-700 hover:bg-slate-50 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700" onclick="onReset()">إعادة ضبط</button>
         </div>
       </form>
     </section>
 
-    <section id="resultsCard" class="card p-5 md:p-6 mt-6 hidden">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h2 id="resultsTitle" class="text-xl font-semibold">النتيجة</h2>
-      </div>
-      <div id="actionsPanel" class="no-print mt-3 p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800">
+    <section id="resultsCard" class="bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-lg rounded-2xl border border-gray-200 dark:border-slate-700 p-5 md:p-6 mt-6 hidden">
+      <h2 id="resultsTitle" class="text-xl font-semibold">النتيجة</h2>
+
+      <div class="no-print mt-3 p-3 rounded-2xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800">
         <div id="actionsTitle" class="text-sm font-medium mb-2">أدوات النتيجة</div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button id="copyBtn" class="btn w-full border-2 border-slate-400 dark:border-slate-500">Copy / Share</button>
-          <button id="icsBtn" class="btn w-full border-2 border-slate-400 dark:border-slate-500">Add to Calendar (.ics)</button>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button id="copyBtn" type="button" class="px-4 py-2 rounded-xl border bg-white text-slate-700 hover:bg-slate-50 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700 w-full border-2 border-slate-400 dark:border-slate-500" onclick="copyShare()">Copy / Share</button>
+          <button id="icsBtn" type="button" class="px-4 py-2 rounded-xl border bg-white text-slate-700 hover:bg-slate-50 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700 w-full border-2 border-slate-400 dark:border-slate-500" onclick="downloadIcs()">Add to Calendar (.ics)</button>
+          <button id="printBtn" type="button" class="px-4 py-2 rounded-xl border bg-white text-slate-700 hover:bg-slate-50 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700 w-full border-2 border-slate-400 dark:border-slate-500" onclick="window.print()">طباعة/حفظ PDF</button>
         </div>
         <label class="mt-3 inline-flex items-center gap-2 text-sm">
-          <input id="earliestOnly" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-          <span id="lblEarliestOnly">Show only earliest</span>
+          <input id="earliestOnly" type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" onclick="rebuildAfterToggle()" />
+          <span id="lblEarliestOnly">عرض الأقرب فقط</span>
         </label>
       </div>
 
@@ -186,461 +194,396 @@
   </main>
 
   <script>
-    // ===== i18n =====
-    const TR = {
-      ar: {
-        title: "حاسبة مواعيد زيارة طبيب العيون",
-        subtitle: "اختر الحالات، أدخل عمرك أو فئتك العمرية وتاريخ آخر زيارة، وسنحسب أقرب موعد.",
-        ageGroupToggle: "استخدام الفئة العمرية بدلاً من تاريخ الميلاد",
-        ageGroup: "الفئة العمرية",
-        helpAgeGroup: "اختر فقط إذا لم ترغب بإدخال تاريخ الميلاد.",
-        dob: "تاريخ الميلاد",
-        helpDob: "يُستخدم لحساب الفئة العمرية.",
-        lastVisit: "تاريخ آخر زيارة لطبيب العيون",
-        helpLastVisit: "مثال: 2024-12-05. لا تقبل تاريخًا مستقبليًا.",
-        errRequiredDate: "هذا الحقل إجباري. الرجاء إدخال تاريخ آخر زيارة.",
-        errFutureDate: "لا يمكن أن يكون التاريخ في المستقبل.",
-        errRequiredDob: "الرجاء إدخال تاريخ الميلاد أو اختر الفئة العمرية.",
-        condHeader: "اختر الحالات/الظروف لديك",
-        condHelper: "يمكنك اختيار أكثر من حالة؛ سنعرض أقرب موعد.",
-        condSearchPh: "ابحث عن الحالة...",
-        condClear: "مسح",
-        actionsTitle: "أدوات النتيجة",
-        extraHeader: "معلومات إضافية مطلوبة لبعض الحالات",
-        hcqYears: "سنوات استخدام هيدروكسي كلوروكين/كلوروكين",
-        helpHcq: "فحص سنوي بعد 5 سنوات من الاستخدام.",
-        tamoxYears: "سنوات استخدام تاموكسيفين",
-        tamoxHighDose: "جرعة مرتفعة",
-        helpTamox: "فحص سنوي إذا المدة > 5 سنوات أو الجرعة مرتفعة.",
-        tedActive: "نشِط حاليًا (مرض عين درقي)",
-        helpTed: "نشِط: كل 3–6 أشهر. مستقر: سنوي.",
-        t1Years: "سنوات منذ تشخيص سكري النوع الأول",
-        helpT1: "يبدأ الفحص بعد 5 سنوات من التشخيص، ثم سنويًا.",
-        btnCalc: "احسب الزيارة القادمة",
-        btnReset: "إعادة ضبط",
-        btnPrint: "طباعة/حفظ PDF",
-        resultsTitle: "النتيجة",
-        lastVisitShort: "تاريخ آخر زيارة",
-        age: "العمر",
-        ageGroupLabel: "الفئة العمرية",
-        earliest: "أقرب موعد موصى به",
-        noneAuto: "لا يوجد تاريخ محدد تلقائيًا — راجع التفاصيل.",
-        basis: "الأساس",
-        nextVisit: "الزيارة القادمة",
-        window: "نافذة المتابعة",
-        notes: "ملاحظات",
-        disclaimer: "تنبيه: هذه أداة تثقيفية ولا تُغني عن التقييم الطبي.",
-        footer: "© 2025 جميع الحقوق محفوظة لسُلطان عبد الرحمن الحسن. Ophth-Scheduler™ — يُحظر نسخ أو إعادة توزيع أو استخراج أو إجراء هندسة عكسية دون إذن.",
-        adultsEnterDOB: "للبالغين بدون عوامل خطورة: الرجاء إدخال تاريخ الميلاد أو اختيار الفئة العمرية.",
-        adultsUnder40: "بدون عوامل خطورة: الفحص الشامل عند عمر 40 سنة.",
-        ruleExplain: "عند تعدد الحالات نستخدم أقرب موعد آمن حسب اختيارك.",
-        earliestOnly: "عرض الأقرب فقط",
-        copyShare: "نسخ/مشاركة",
-        addCalendar: "إضافة إلى التقويم (.ics)",
-        dueNow: "مستحق الآن",
-        overdueBy: (d)=>`متأخر بـ ${d} يوم`,
-        dueIn: (d)=>`متبقٍ ${d} يوم`,
-        conds: {
-          noRiskAdults: "بالغون بدون عوامل خطورة معروفة",
-          healthyChildren: "أطفال أصحاء (فحوصات نظر روتينية أولية)",
-          t1dm: "السكري النوع الأول (بالغون)",
-          t2dm: "السكري النوع الثاني (بالغون)",
-          dmPregnancy: "حمل مع سكري قائم (نوع 1 أو 2)",
-          gdm: "سكري حملي",
-          glauSuspect: "مشتبه ماء أزرق / ارتفاع ضغط العين",
-          fhGlaucoma: "قرابة درجة أولى لمريض ماء أزرق (بدون اشتباه)",
-          highMyopia: "قصر نظر شديد (≤ −6.0 D أو طول محوري > 26 مم)",
-          hcq: "هيدروكسي كلوروكوين / كلوروكين",
-          tamox: "تاموكسيفين",
-          ted: "مرض عين درقي (غريفز)"
-        },
-        explain: {
-          ageRange: "40–54 سنة: كل 2–4 سنوات • 55–64: كل 1–3 سنوات • ≥65: كل 1–2 سنة",
-          text: "لا حاجة لزيارة طبيب العيون إذا كانت فحوصات النظر الأولية طبيعية.",
-          t1dm: "ابدأ بعد 5 سنوات من التشخيص، ثم سنويًا.",
-          annual: "فحص سنوي.",
-          pregnancyDM: "قبل الحمل والثلث الأول ثم كل ثلث؛ ما بعد الولادة حسب الطبيب.",
-          gdm: "لا يلزم فحص اعتلال الشبكية أثناء الحمل؛ استأنف الجدول العمري بعد الولادة.",
-          hcq: "فحص أساسي خلال سنة؛ سنوي بعد 5 سنوات من الاستخدام.",
-          tamox: "أساسي في السنة الأولى؛ سنوي إذا >5 سنوات أو جرعات عالية؛ وإلا الجدول العمري.",
-          thyroidEye: "كل 3–6 أشهر أثناء النشاط؛ سنوي بعد الاستقرار/اليوثيرويد."
-        }
-      },
-      en: {
-        title: "Ophthalmology Visit Scheduler",
-        subtitle: "Select your conditions, enter DOB or age group and last visit date, and we’ll compute the next exam.",
-        ageGroupToggle: "Use age group instead of date of birth",
-        ageGroup: "Age group",
-        helpAgeGroup: "Use this only if you prefer not to enter DOB.",
-        dob: "Date of birth",
-        helpDob: "Used to determine age group.",
-        lastVisit: "Last ophthalmology visit date",
-        helpLastVisit: "Example: 2024-12-05. Future dates are not allowed.",
-        errRequiredDate: "This field is required. Please enter the last visit date.",
-        errFutureDate: "Date cannot be in the future.",
-        errRequiredDob: "Please enter date of birth or choose an age group.",
-        condHeader: "Select your conditions",
-        condHelper: "You can choose multiple; we’ll suggest the earliest due date.",
-        condSearchPh: "Search condition...",
-        condClear: "Clear",
-        actionsTitle: "Result tools",
-        extraHeader: "Additional info required for some conditions",
-        hcqYears: "Years of hydroxychloroquine/chloroquine use",
-        helpHcq: "Annual screening after 5 years of use.",
-        tamoxYears: "Years of tamoxifen use",
-        tamoxHighDose: "High dose",
-        helpTamox: "Annual if >5 years or high dose.",
-        tedActive: "Currently active (thyroid eye disease)",
-        helpTed: "Active: every 3–6 months. Stable: annually.",
-        t1Years: "Years since type 1 diabetes diagnosis",
-        helpT1: "Begin 5 years after diagnosis, then annually.",
-        btnCalc: "Calculate next visit",
-        btnReset: "Reset",
-        btnPrint: "Print / Save PDF",
-        resultsTitle: "Result",
-        lastVisitShort: "Last visit",
-        age: "Age",
-        ageGroupLabel: "Age group",
-        earliest: "Earliest recommended",
-        noneAuto: "No automatic date — see details below.",
-        basis: "Basis",
-        nextVisit: "Next visit",
-        window: "Follow-up window",
-        notes: "Notes",
-        disclaimer: "Note: Educational tool; not a substitute for medical care.",
-        footer: "© 2025 جميع الحقوق محفوظة لسُلطان عبد الرحمن الحسن. Ophth-Scheduler™ — يُحظر نسخ أو إعادة توزيع أو استخراج أو إجراء هندسة عكسية دون إذن.",
-        adultsEnterDOB: "For adults without risk factors: enter DOB or choose an age group.",
-        adultsUnder40: "Without risk factors: comprehensive eye exam at age 40.",
-        ruleExplain: "If multiple conditions exist, the earliest safe interval is used.",
-        earliestOnly: "Show only earliest",
-        copyShare: "Copy / Share",
-        addCalendar: "Add to Calendar (.ics)",
-        dueNow: "Due now",
-        overdueBy: (d)=>`Overdue by ${d} day${d===1?'':'s'}`,
-        dueIn: (d)=>`Due in ${d} day${d===1?'':'s'}`,
-        conds: {
-          noRiskAdults: "Adults without known risk factors",
-          healthyChildren: "Healthy children (primary vision screening)",
-          t1dm: "Type 1 diabetes (adults)",
-          t2dm: "Type 2 diabetes (adults)",
-          dmPregnancy: "Pregnancy with pre-existing diabetes (T1/T2)",
-          gdm: "Gestational diabetes",
-          glauSuspect: "Glaucoma suspect / ocular hypertension",
-          fhGlaucoma: "First-degree relative of a glaucoma patient (no personal suspicion)",
-          highMyopia: "High myopia (≤ −6.0 D or axial length > 26 mm)",
-          hcq: "Hydroxychloroquine / chloroquine",
-          tamox: "Tamoxifen",
-          ted: "Thyroid eye disease (Graves)"
-        },
-        explain: {
-          ageRange: "40–54 yrs: every 2–4 yrs • 55–64: every 1–3 yrs • ≥65: every 1–2 yrs",
-          text: "No routine ophthalmology visit is needed if primary vision screening is normal.",
-          t1dm: "Begin 5 years after diagnosis, then annually.",
-          annual: "Annual (every year).",
-          pregnancyDM: "Before conception and first trimester; each trimester; postpartum per clinician.",
-          gdm: "No retinopathy exam during pregnancy; resume age-based routine after delivery.",
-          hcq: "Baseline within first year; annually after 5 years of use.",
-          tamox: "Baseline in year 1; annual if >5 years or high dose; otherwise age-based routine.",
-          thyroidEye: "Every 3–6 months while active; annually when stable/euthyroid."
-        }
-      }
-    };
+  /* ===== State & i18n ===== */
+  var currentLang = 'ar';
+  function setTheme(th){
+    var root=document.documentElement;
+    if(th==='dark'){root.classList.add('dark');root.classList.remove('light');}
+    else {root.classList.remove('dark');root.classList.add('light'); th='light';}
+    try{localStorage.setItem('oph_theme', th);}catch(e){}
+  }
+  (function(){ try{ setTheme(localStorage.getItem('oph_theme')||'light'); }catch(e){ setTheme('light'); } })();
 
-    // ===== Conditions metadata =====
-    const CONDITIONS = [
-      { id: 'noRiskAdults', type: 'ageRange' },
-      { id: 'healthyChildren', type: 'text' },
-      { id: 't1dm', type: 't1dm' },
-      { id: 't2dm', type: 'annual' },
-      { id: 'dmPregnancy', type: 'pregnancyDM' },
-      { id: 'gdm', type: 'gdm' },
-      { id: 'glauSuspect', type: 'annual' },
-      { id: 'fhGlaucoma', type: 'annual' },
-      { id: 'highMyopia', type: 'annual' },
-      { id: 'hcq', type: 'hcq' },
-      { id: 'tamox', type: 'tamox' },
-      { id: 'ted', type: 'thyroidEye' },
-    ];
+  var TR = {
+    ar: {
+      title:"حاسبة مواعيد زيارة طبيب العيون",
+      subtitle:"اختر الحالات، أدخل عمرك/فئتك العمرية وتاريخ آخر زيارة، وسنحسب أقرب موعد.",
+      ageGroupToggle:"استخدام الفئة العمرية بدلاً من تاريخ الميلاد",
+      ageGroup:"الفئة العمرية", helpAgeGroup:"اختر فقط إذا لم ترغب بإدخال تاريخ الميلاد.",
+      dob:"تاريخ الميلاد", helpDob:"يُستخدم لحساب الفئة العمرية.",
+      lastVisit:"تاريخ آخر زيارة لطبيب العيون",
+      noOphthVisit:"لا توجد لدي زيارات سابقة لطبيب العيون",
+      asapMsg:"في أقرب وقت ممكن من أجل سلامتك ومن حرصنا عليك.",
+      helpLastVisit:"مثال: 2024-12-05. لا تقبل تاريخًا مستقبليًا.",
+      errRequiredDate:"الرجاء إدخال تاريخ آخر زيارة أو اختر خيار عدم وجود زيارات.",
+      errFutureDate:"لا يمكن أن يكون التاريخ في المستقبل.",
+      errRequiredDob:"الرجاء إدخال تاريخ الميلاد أو اختر الفئة العمرية.",
+      condHeader:"اختر الحالات/الظروف لديك", condHelper:"يمكنك اختيار أكثر من حالة؛ سنعرض أقرب موعد.",
+      extraHeader:"معلومات إضافية مطلوبة لبعض الحالات",
+      dmSeverity:"شدة السكري (لاعتلال الشبكية)",
+      optSevere:"شديد (زيارة خلال 3 أشهر)", optModerate:"متوسط (خلال 6 أشهر)", optMild:"بسيط (خلال 9 أشهر)", optUnknown:"لا أعرف (سنة واحدة)",
+      tedActive:"نشِط حاليًا (مرض عين درقي)", helpTed:"نشِط: كل 3–6 أشهر. مستقر: سنوي.",
+      btnCalc:"احسب الزيارة القادمة", btnReset:"إعادة ضبط", btnPrint:"طباعة/حفظ PDF",
+      resultsTitle:"النتيجة", lastVisitShort:"تاريخ آخر زيارة", age:"العمر", ageGroupLabel:"الفئة العمرية",
+      earliest:"أقرب موعد موصى به", noneAuto:"لا يوجد تاريخ محدد تلقائيًا — راجع التفاصيل.",
+      basis:"الأساس", nextVisit:"الزيارة القادمة", window:"نافذة المتابعة",
+      ruleExplain:"عند تعدد الحالات نستخدم أقرب موعد آمن حسب اختيارك.",
+      earliestOnly:"عرض الأقرب فقط", copyShare:"نسخ/مشاركة", addCalendar:"إضافة إلى التقويم (.ics)",
+      dueNow:"مستحق الآن", overdueBy:function(d){return "متأخر بـ "+d+" يوم";}, dueIn:function(d){return "متبقٍ "+d+" يوم";},
+      contact:{summary:"تواصل", email:"البريد الإلكتروني", phone:"الهاتف"},
+      actionsTitle:"أدوات النتيجة",
+      disclaimer:"تنبيه: هذه أداة تثقيفية ولا تُغني عن التقييم الطبي.",
+      footer:"© 2025 جميع الحقوق محفوظة لسُلطان عبد الرحمن الحسن. Ophth-Scheduler™ — يُحظر نسخ أو إعادة توزيع أو استخراج أو إجراء هندسة عكسية دون إذن.",
+      tx:{ t1dm:"السكري النوع الأول (بالغون)", t2dm:"السكري النوع الثاني (بالغون)",
+           antiVEGF:"مضادات عامل نمو بطانة الأوعية الدموية ( حقن داخل العين )",
+           hba1c:"السكر التراكمي أعلى من الطبيعي",
+           glp1:"استخدام سيماجلوتايد (أوزمبيك) أو تيرزيباتايد (مونجارو)",
+           glauSus:"مشتبه ماء أزرق / ارتفاع ضغط العين", fhGlau:"قرابة درجة أولى لمريض ماء أزرق",
+           highMy:"قصر نظر شديد (≤ −6.0D أو طول محوري > 26 مم)",
+           ted:"مرض عين درقي (غريفز)", noRisk:"بالغون بلا عوامل خطورة",
+           retLaser:"إجراء ليزر للشبكية" },
+      fontMinus:"أ−",
+      fontPlus:"أ+",
+      fontHelp:"حرّك المؤشر لضبط حجم النص."
+    },
+    en: {
+      title:"Ophthalmology Visit Scheduler",
+      subtitle:"Select your conditions, enter DOB or age group and last visit date, and we’ll compute the next exam.",
+      ageGroupToggle:"Use age group instead of date of birth",
+      ageGroup:"Age group", helpAgeGroup:"Use this only if you prefer not to enter DOB.",
+      dob:"Date of birth", helpDob:"Used to determine age group.",
+      lastVisit:"Last ophthalmology visit date",
+      noOphthVisit:"I have no visit to the ophthalmologist",
+      asapMsg:"As soon as possible for your safety and out of our concern for you.",
+      helpLastVisit:"Example: 2024-12-05. Future dates are not allowed.",
+      errRequiredDate:"Enter the last visit date or check the no-visit option.",
+      errFutureDate:"Date cannot be in the future.",
+      errRequiredDob:"Please enter date of birth or choose an age group.",
+      condHeader:"Select your conditions", condHelper:"You can choose multiple; we’ll suggest the earliest date.",
+      extraHeader:"Additional info required for some conditions",
+      dmSeverity:"Diabetes severity (for retinopathy follow-up)",
+      optSevere:"Severe (in 3 months)", optModerate:"Moderate (in 6 months)", optMild:"Mild (in 9 months)", optUnknown:"I don’t know (in 1 year)",
+      tedActive:"Currently active (thyroid eye disease)", helpTed:"Active: every 3–6 months. Stable: annually.",
+      btnCalc:"Calculate next visit", btnReset:"Reset", btnPrint:"Print / Save PDF",
+      resultsTitle:"Result", lastVisitShort:"Last visit", age:"Age", ageGroupLabel:"Age group",
+      earliest:"Earliest recommended", noneAuto:"No automatic date — see details.",
+      basis:"Basis", nextVisit:"Next visit", window:"Follow-up window",
+      ruleExplain:"If multiple conditions exist, we use the earliest safe interval.",
+      earliestOnly:"Show only earliest", copyShare:"Copy / Share", addCalendar:"Add to Calendar (.ics)",
+      dueNow:"Due now", overdueBy:function(d){return "Overdue by "+d+" day"+(d===1?"":"s");}, dueIn:function(d){return "Due in "+d+" day"+(d===1?"":"s");},
+      contact:{summary:"Contact", email:"Email", phone:"Phone"},
+      actionsTitle:"Result tools",
+      disclaimer:"Note: This is an educational tool and does not replace professional medical evaluation.",
+      footer:"© 2025 Sultan Abdulrahman Alhassan. Ophth-Scheduler™ — Unauthorized copying, redistribution, scraping, or reverse engineering is prohibited.",
+      tx:{ t1dm:"Type 1 diabetes (adults)", t2dm:"Type 2 diabetes (adults)",
+           antiVEGF:"On anti-VEGF therapy (injections inside the eye)",
+           hba1c:"HbA1c above normal",
+           glp1:"Using semaglutide (Ozempic) or tirzepatide (Mounjaro)",
+           glauSus:"Glaucoma suspect / ocular hypertension", fhGlau:"First-degree relative of glaucoma",
+           highMy:"High myopia (≤ −6.0D or axial length > 26 mm)",
+           ted:"Thyroid eye disease (Graves)", noRisk:"Adults without known risk factors",
+           retLaser:"Undergone retinal laser" },
+      fontMinus:"A−",
+      fontPlus:"A+",
+      fontHelp:"Use the slider to adjust text size."
+    }
+  };
 
-    // ===== Utils =====
-    function addYears(d, n){ const x=new Date(d); x.setFullYear(x.getFullYear()+n); return x; }
-    function addMonths(d, n){ const x=new Date(d); x.setMonth(x.getMonth()+n); return x; }
-    function fmt(date){ if(!(date instanceof Date) || isNaN(date)) return '—'; const d=String(date.getDate()).padStart(2,'0'); const m=String(date.getMonth()+1).padStart(2,'0'); const y=date.getFullYear(); return `${d}/${m}/${y}`; }
-    function calcAgeYears(dob){ if(!dob) return null; const today=new Date(); let age=today.getFullYear()-dob.getFullYear(); const m=today.getMonth()-dob.getMonth(); if(m<0||(m===0&&today.getDate()<dob.getDate())) age--; return age; }
-    function daysBetween(a,b){ const MS=24*60*60*1000; return Math.round((a.setHours(0,0,0,0)-b.setHours(0,0,0,0))/MS); }
+  function setLang(lang){
+    currentLang = (lang==='en')?'en':'ar';
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir  = (currentLang==='ar')?'rtl':'ltr';
 
-    // ===== Theme =====
-    const THEME_KEY = 'oph_theme';
-    function setTheme(th){ const root=document.documentElement; if(th==='dark'){ root.classList.add('dark'); root.classList.remove('light'); } else { root.classList.remove('dark'); root.classList.add('light'); th='light'; } localStorage.setItem(THEME_KEY, th); }
-    document.getElementById('theme-light').addEventListener('click', ()=> setTheme('light'));
-    document.getElementById('theme-dark').addEventListener('click', ()=> setTheme('dark'));
-    setTheme(localStorage.getItem(THEME_KEY) || 'light');
+    // Static text
+    setText('title', TR[currentLang].title);
+    setText('subtitle', TR[currentLang].subtitle);
+    setText('lblAgeGroupToggle', TR[currentLang].ageGroupToggle);
+    setText('lblDob', TR[currentLang].dob);
+    setText('helpDob', TR[currentLang].helpDob);
+    setText('lblLastVisit', TR[currentLang].lastVisit);
+    setText('lblNoOphthVisit', TR[currentLang].noOphthVisit);
+    setText('helpLastVisit', TR[currentLang].helpLastVisit);
+    setText('condHeader', TR[currentLang].condHeader);
+    setText('condHelper', TR[currentLang].condHelper);
+    setText('extraHeader', TR[currentLang].extraHeader);
+    setText('lblDmSeverity', TR[currentLang].dmSeverity);
+    setText('optSevere', TR[currentLang].optSevere);
+    setText('optModerate', TR[currentLang].optModerate);
+    setText('optMild', TR[currentLang].optMild);
+    setText('optUnknown', TR[currentLang].optUnknown);
+    setText('lblTedActive', TR[currentLang].tedActive);
+    setText('helpTed', TR[currentLang].helpTed);
+    setText('btnCalc', TR[currentLang].btnCalc);
+    setText('resetBtn', TR[currentLang].btnReset);
+    setText('resultsTitle', TR[currentLang].resultsTitle);
+    setText('ruleExplain', TR[currentLang].ruleExplain);
+    setText('lblEarliestOnly', TR[currentLang].earliestOnly);
+    setText('contactSummary', TR[currentLang].contact.summary);
+    setText('contactEmailLabel', TR[currentLang].contact.email);
+    setText('contactPhoneLabel', TR[currentLang].contact.phone);
+    setText('lblAgeGroup', TR[currentLang].ageGroup);
+    setText('helpAgeGroup', TR[currentLang].helpAgeGroup);
 
-    // ===== Language =====
-    let currentLang = 'ar';
-    function t(path){ const obj = TR[currentLang]; const val = path.split('.').reduce((o,k)=> (o||{})[k], obj); return (typeof val==='function')? val : (val || ''); }
-    function tp(path, ...args){ const fn = TR[currentLang]; let cur = fn; for(const k of path.split('.')) cur = (cur||{})[k]; return typeof cur==='function'? cur(...args) : cur; }
+    // Result tools
+    setText('actionsTitle', TR[currentLang].actionsTitle);
+    setText('copyBtn', TR[currentLang].copyShare);
+    setText('icsBtn', TR[currentLang].addCalendar);
+    setText('printBtn', TR[currentLang].btnPrint);
 
-    // ===== Searchable multi-select for conditions =====
-    const selectedIds = new Set();
-    const chipsEl = document.getElementById('selectedChips');
-    const searchEl = document.getElementById('condSearch');
-    const dropdownEl = document.getElementById('condDropdown');
-    const rootEl = document.getElementById('condMultiRoot');
-    const clearBtn = document.getElementById('clearConds');
+    // Disclaimer + footer
+    setText('disclaimer',   TR[currentLang].disclaimer);
+    setText('footerText',   TR[currentLang].footer);
 
-    function renderChips(){
-      chipsEl.innerHTML = '';
-      selectedIds.forEach(id => {
-        const cond = CONDITIONS.find(c=>c.id===id);
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.innerHTML = `<span>${t(`conds.${id}`)}</span><button type="button" aria-label="remove" class="text-slate-500 hover:text-rose-600">×</button>`;
-        chip.querySelector('button').onclick = () => { selectedIds.delete(id); renderChips(); renderDropdown(searchEl.value); toggleExtra(); };
-        chipsEl.appendChild(chip);
-      });
-      clearBtn.classList.toggle('hidden', selectedIds.size===0);
+    // Condition labels
+    setText('tx_t1dm', TR[currentLang].tx.t1dm);
+    setText('tx_t2dm', TR[currentLang].tx.t2dm);
+    setText('tx_antiVEGF', TR[currentLang].tx.antiVEGF);
+    setText('tx_hba1c', TR[currentLang].tx.hba1c);
+    setText('tx_glp1', TR[currentLang].tx.glp1);
+    setText('tx_glauSus', TR[currentLang].tx.glauSus);
+    setText('tx_fhGlau', TR[currentLang].tx.fhGlau);
+    setText('tx_highMy', TR[currentLang].tx.highMy);
+    setText('tx_ted', TR[currentLang].tx.ted);
+    setText('tx_retLaser', TR[currentLang].tx.retLaser);
+    setText('tx_noRisk', TR[currentLang].tx.noRisk);
+
+    // Font slider labels/help
+    setText('fontMinus', TR[currentLang].fontMinus);
+    setText('fontPlus',  TR[currentLang].fontPlus);
+    setText('fontHelp',  TR[currentLang].fontHelp);
+  }
+  function setText(id, txt){ var el=document.getElementById(id); if(el){ el.textContent = txt; } }
+
+  /* ===== Helpers ===== */
+  function addYears(d,n){ var x=new Date(d); x.setFullYear(x.getFullYear()+n); return x; }
+  function addMonths(d,n){ var x=new Date(d); x.setMonth(x.getMonth()+n); return x; }
+  function fmt(date){ if(!(date instanceof Date)||isNaN(date))return'—'; var dd=('0'+date.getDate()).slice(-2); var mm=('0'+(date.getMonth()+1)).slice(-2); var yy=date.getFullYear(); return dd+'/'+mm+'/'+yy; }
+  function calcAgeYears(dob){ if(!dob)return null; var t=new Date(); var a=t.getFullYear()-dob.getFullYear(); var m=t.getMonth()-dob.getMonth(); if(m<0||(m===0&&t.getDate()<dob.getDate()))a--; return a; }
+  function daysBetween(a,b){ var MS=86400000; var a0=new Date(a); a0.setHours(0,0,0,0); var b0=new Date(b); b0.setHours(0,0,0,0); return Math.round((a0-b0)/MS); }
+
+  function showFieldError(id,msg){ var i=document.getElementById(id), e=document.getElementById(id+'Error'); if(!i||!e)return; e.textContent=msg; e.classList.remove('hidden'); i.classList.add('invalid'); }
+  function clearFieldError(id){ var i=document.getElementById(id), e=document.getElementById(id+'Error'); if(!i||!e)return; e.textContent=''; e.classList.add('hidden'); i.classList.remove('invalid'); }
+
+  /* ===== UI toggles ===== */
+  function toggleAgeMode(){
+    var on=document.getElementById('ageGroupToggle').checked;
+    document.getElementById('dobWrap').classList.toggle('hidden', on);
+    document.getElementById('ageGroupWrap').classList.toggle('hidden', !on);
+  }
+  function onNoVisitToggle(){
+    var on=document.getElementById('noOphthVisit').checked;
+    var last=document.getElementById('lastVisit');
+    if(on){ last.value=''; clearFieldError('lastVisit'); last.setAttribute('disabled','disabled'); }
+    else { last.removeAttribute('disabled'); }
+  }
+  function toggleExtra(){
+    var dm = document.getElementById('c_t1dm').checked || document.getElementById('c_t2dm').checked;
+    var ted= document.getElementById('c_ted').checked;
+    var any = dm || ted;
+    document.getElementById('conditionalFields').classList.toggle('hidden', !any);
+    document.getElementById('extra-dm-severity').classList.toggle('hidden', !dm);
+    document.getElementById('extra-ted').classList.toggle('hidden', !ted);
+  }
+  function rebuildAfterToggle(){
+    if(!document.getElementById('resultsCard').classList.contains('hidden')) onCalc();
+  }
+
+  /* ===== Main calc ===== */
+  function dmNextBySeverity(baseDate){
+    var radios=document.getElementsByName('dmSeverity'); var v='unknown';
+    for(var i=0;i<radios.length;i++){ if(radios[i].checked){ v=radios[i].value; break; } }
+    if(v==='severe')   return addMonths(baseDate,3);
+    if(v==='moderate') return addMonths(baseDate,6);
+    if(v==='mild')     return addMonths(baseDate,9);
+    return addYears(baseDate,1);
+  }
+
+  function onCalc(){
+    var noVisit=document.getElementById('noOphthVisit').checked;
+    var today=new Date(); today.setHours(0,0,0,0);
+    var lastVisit=null;
+
+    if(!noVisit){
+      var lastStr=document.getElementById('lastVisit').value;
+      if(!lastStr){ showFieldError('lastVisit', TR[currentLang].errRequiredDate); return false; }
+      clearFieldError('lastVisit');
+      lastVisit=new Date(lastStr);
+      if(lastVisit>today){ showFieldError('lastVisit', TR[currentLang].errFutureDate); return false; }
+      clearFieldError('lastVisit');
     }
 
-    function renderDropdown(filter=''){
-      const f = filter.trim().toLowerCase();
-      dropdownEl.innerHTML = '';
-      CONDITIONS.filter(c => t(`conds.${c.id}`).toLowerCase().includes(f))
-        .forEach(c => {
-          const row = document.createElement('button');
-          row.type = 'button';
-          const checked = selectedIds.has(c.id);
-          row.className = `w-full text-right px-3 py-2 border-b last:border-b-0 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 ${checked?'bg-indigo-50/60 dark:bg-indigo-900/30':''}`;
-          row.innerHTML = `
-            <div class="flex items-start gap-2">
-              <input type="checkbox" ${checked?'checked':''} class="mt-1 pointer-events-none rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-              <div>
-                <div class="font-medium">${t(`conds.${c.id}`)}</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">${t(`explain.${c.type}`)}</div>
-              </div>
-            </div>`;
-          row.onclick = () => { if(checked) selectedIds.delete(c.id); else selectedIds.add(c.id); renderChips(); renderDropdown(f); toggleExtra(); };
-          dropdownEl.appendChild(row);
-        });
+    var ageYears=null, ageGroupLabel='';
+    if(document.getElementById('ageGroupToggle').checked){
+      var g=document.getElementById('ageGroup').value;
+      if(g==='u40'){ ageYears=30; ageGroupLabel=(currentLang==='ar'?'< 40':'< 40'); }
+      if(g==='40-54'){ ageYears=45; ageGroupLabel='40–54'; }
+      if(g==='55-64'){ ageYears=60; ageGroupLabel='55–64'; }
+      if(g==='>=65'){ ageYears=70; ageGroupLabel='≥65'; }
+      clearFieldError('dob');
+    }else{
+      var dobStr=document.getElementById('dob').value;
+      if(!dobStr){ showFieldError('dob', TR[currentLang].errRequiredDob); return false; }
+      clearFieldError('dob'); ageYears=calcAgeYears(new Date(dobStr));
     }
 
-    function openDropdown(){ dropdownEl.classList.remove('hidden'); }
-    function closeDropdown(){ dropdownEl.classList.add('hidden'); }
+    document.getElementById('resultsCard').classList.remove('hidden');
 
-    document.getElementById('condControl').addEventListener('click', () => { openDropdown(); searchEl.focus(); });
-    searchEl.addEventListener('input', (e)=> { renderDropdown(e.target.value); openDropdown(); });
-    clearBtn.addEventListener('click', ()=> { selectedIds.clear(); renderChips(); renderDropdown(searchEl.value); toggleExtra(); });
-    document.addEventListener('click', (e)=> { if(!rootEl.contains(e.target)) closeDropdown(); });
+    if(noVisit){
+      document.getElementById('summary').innerHTML = '<div class="text-lg font-semibold">'+TR[currentLang].asapMsg+'</div>';
+      document.getElementById('dueBanner').classList.add('hidden');
+      document.getElementById('details').innerHTML='';
+      return false;
+    }
 
-    function getSelectedConditions(){ return CONDITIONS.filter(c=> selectedIds.has(c.id)).map(c => ({...c, label: t(`conds.${c.id}`)})); }
+    var recs=[];
+    function pushAnnual(label, basisOverride){
+      recs.push({label:label, next:addYears(lastVisit,1), window:null, basis: basisOverride || (currentLang==='ar'?'فحص سنوي':'Annual')});
+    }
 
-    // ===== Age group toggle =====
-    const ageGroupToggle = document.getElementById('ageGroupToggle');
-    ageGroupToggle.addEventListener('change', () => {
-      document.getElementById('dobWrap').classList.toggle('hidden', ageGroupToggle.checked);
-      document.getElementById('ageGroupWrap').classList.toggle('hidden', !ageGroupToggle.checked);
-    });
+    if(document.getElementById('c_glauSus').checked) pushAnnual(getTx('glauSus'));
+    if(document.getElementById('c_fhGlau').checked)  pushAnnual(getTx('fhGlau'));
+    if(document.getElementById('c_highMy').checked)  pushAnnual(getTx('highMy'));
 
-    // ===== Conditional fields visibility =====
-    function sel(key){ return selectedIds.has(key); }
-    const toggleExtra = () => {
-      const any = sel('hcq') || sel('tamox') || sel('ted') || sel('t1dm');
-      document.getElementById('conditionalFields').classList.toggle('hidden', !any);
-      document.getElementById('extra-hcq').classList.toggle('hidden', !sel('hcq'));
-      document.getElementById('extra-tamox').classList.toggle('hidden', !sel('tamox'));
-      document.getElementById('extra-ted').classList.toggle('hidden', !sel('ted'));
-      document.getElementById('extra-t1dm').classList.toggle('hidden', !sel('t1dm'));
-    };
-
-    // ===== Reset & Print =====
-    function clearFieldError(inputId){ const input = document.getElementById(inputId); const err = document.getElementById(inputId+'Error'); if(input&&err){ err.textContent=''; err.classList.add('hidden'); input.classList.remove('invalid'); } }
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      document.getElementById('schedulerForm').reset();
-      selectedIds.clear(); renderChips(); renderDropdown('');
-      document.getElementById('conditionalFields').classList.add('hidden');
-      document.getElementById('resultsCard').classList.add('hidden');
-      clearFieldError('lastVisit'); clearFieldError('dob');
-    });
-    document.getElementById('printBtn').addEventListener('click', () => window.print());
-
-    // ===== Submit + validation =====
-    function showFieldError(inputId, message){ const input = document.getElementById(inputId); const err = document.getElementById(inputId+'Error'); if(!(input&&err)) return; err.textContent = message; err.classList.remove('hidden'); input.classList.add('invalid'); input.scrollIntoView({ behavior:'smooth', block:'start' }); setTimeout(()=> input.focus({preventScroll:true}), 350); }
-
-    document.getElementById('schedulerForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const today = new Date(); today.setHours(0,0,0,0);
-
-      const lastVisitStr = document.getElementById('lastVisit').value;
-      if(!lastVisitStr){ showFieldError('lastVisit', t('errRequiredDate')); return; } else { clearFieldError('lastVisit'); }
-      const lastVisit = new Date(lastVisitStr);
-      if (lastVisit > today){ showFieldError('lastVisit', t('errFutureDate')); return; } else { clearFieldError('lastVisit'); }
-
-      let ageYears = null; let ageGroupLabel = '';
-      if (ageGroupToggle.checked){
-        const g = document.getElementById('ageGroup').value;
-        if (g==='u40'){ ageYears = 30; ageGroupLabel = currentLang==='ar'?'< 40':'< 40'; }
-        if (g==='40-54'){ ageYears = 45; ageGroupLabel = '40–54'; }
-        if (g==='55-64'){ ageYears = 60; ageGroupLabel = '55–64'; }
-        if (g==='>=65'){ ageYears = 70; ageGroupLabel = '≥65'; }
-        clearFieldError('dob');
+    if(document.getElementById('c_noRisk').checked){
+      if(ageYears<40){
+        // info only
+      } else if(ageYears<=54){
+        recs.push({label:getTx('noRisk'), next:addYears(lastVisit,2), window:[addYears(lastVisit,2), addYears(lastVisit,4)], basis:"40–54: كل 2–4 سنوات / every 2–4 yrs"});
+      } else if(ageYears<=64){
+        recs.push({label:getTx('noRisk'), next:addYears(lastVisit,1), window:[addYears(lastVisit,1), addYears(lastVisit,3)], basis:"55–64: كل 1–3 سنوات / every 1–3 yrs"});
       } else {
-        const dobStr = document.getElementById('dob').value;
-        if(!dobStr){ showFieldError('dob', t('errRequiredDob')); return; } else { clearFieldError('dob'); }
-        const dob = new Date(dobStr); ageYears = calcAgeYears(dob);
+        recs.push({label:getTx('noRisk'), next:addYears(lastVisit,1), window:[addYears(lastVisit,1), addYears(lastVisit,2)], basis:"≥65: كل 1–2 سنة / every 1–2 yrs"});
       }
-
-      const selected = getSelectedConditions();
-      if(selected.length === 0){ showOnlyGeneral(ageYears, ageGroupLabel, lastVisit); return; }
-
-      const extras = { hcqYears: parseInt(document.getElementById('hcqYears')?.value || '0', 10), tamoxYears: parseInt(document.getElementById('tamoxYears')?.value || '0', 10), tamoxHighDose: !!document.getElementById('tamoxHighDose')?.checked, tedActive: !!document.getElementById('tedActive')?.checked, t1Years: parseInt(document.getElementById('t1Years')?.value || '0', 10) };
-
-      const recommendations = []; const notes = [];
-
-      selected.forEach(c => {
-        switch(c.type){
-          case 'annual': { const next = addYears(lastVisit, 1); recommendations.push({ id:c.id, label:c.label, nextDate: next, window: null, basis:t('explain.annual') }); break; }
-          case 'ageRange': {
-            if (ageYears < 40) { notes.push(t('adultsUnder40')); }
-            else if (ageYears >= 40 && ageYears <= 54) { recommendations.push({ id:c.id, label:c.label, nextDate: addYears(lastVisit, 2), window: [addYears(lastVisit,2), addYears(lastVisit,4)], basis:t('explain.ageRange') + ' (40–54)' }); }
-            else if (ageYears >= 55 && ageYears <= 64) { recommendations.push({ id:c.id, label:c.label, nextDate: addYears(lastVisit, 1), window: [addYears(lastVisit,1), addYears(lastVisit,3)], basis:t('explain.ageRange') + ' (55–64)' }); }
-            else { recommendations.push({ id:c.id, label:c.label, nextDate: addYears(lastVisit, 1), window: [addYears(lastVisit,1), addYears(lastVisit,2)], basis:t('explain.ageRange') + ' (≥65)' }); }
-            break; }
-          case 'text': { notes.push(t('explain.text')); break; }
-          case 't1dm': { if (isFinite(extras.t1Years) && extras.t1Years < 5){ notes.push(currentLang==='ar' ? 'سكري نوع أول: يبدأ فحص الشبكية بعد 5 سنوات من التشخيص (أو الآن إذا لم تُفحص سابقًا)، ثم سنويًا.' : 'Type 1 DM: start retinal screening 5 years after diagnosis (or now if never screened), then annually.'); } const next = addYears(lastVisit, 1); recommendations.push({ id:c.id, label:c.label, nextDate: next, window: null, basis: currentLang==='ar' ? 'سنوي بعد بدء المتابعة' : 'Annual once follow-up starts' }); break; }
-          case 'pregnancyDM': { notes.push(t('explain.pregnancyDM')); break; }
-          case 'gdm': { notes.push(t('explain.gdm')); break; }
-          case 'hcq': { if (extras.hcqYears >= 5){ const next = addYears(lastVisit, 1); recommendations.push({ id:c.id, label:c.label, nextDate: next, window: null, basis: currentLang==='ar'?'سنوي بعد 5 سنوات من الاستخدام':'Annual after 5 years of use' }); } else { notes.push(currentLang==='ar' ? 'استخدام HCQ/كوروكين أقل من 5 سنوات: اتبع الجدول العمري؛ قد يلزم أبكر إذا مرتفع الخطورة.' : 'HCQ/chloroquine <5 years: follow age-based routine; earlier if high risk.'); } break; }
-          case 'tamox': { if (extras.tamoxHighDose || extras.tamoxYears > 5){ const next = addYears(lastVisit, 1); recommendations.push({ id:c.id, label:c.label, nextDate: next, window: null, basis: currentLang==='ar'?'سنوي (>5 سنوات أو جرعات مرتفعة)':'Annual (>5 years or high dose)' }); } else { notes.push(currentLang==='ar' ? 'تاموكسيفين ≤ 5 سنوات وبدون جرعات مرتفعة: اتبع الجدول العمري.' : 'Tamoxifen ≤5 years and not high dose: follow age-based routine.'); } break; }
-          case 'thyroidEye': { if (extras.tedActive){ const early = addMonths(lastVisit, 3); const late  = addMonths(lastVisit, 6); recommendations.push({ id:c.id, label:c.label, nextDate: early, window:[early, late], basis: currentLang==='ar'?'كل 3–6 أشهر أثناء النشاط':'Every 3–6 months while active' }); } else { const next = addYears(lastVisit, 1); recommendations.push({ id:c.id, label:c.label, nextDate: next, window:null, basis: currentLang==='ar'?'سنوي بعد الاستقرار':'Annual when stable' }); } break; }
-        }
-      });
-
-      const dated = recommendations.filter(r => r.nextDate instanceof Date && !isNaN(r.nextDate)).sort((a,b)=> a.nextDate - b.nextDate);
-      const earliest = dated.length ? dated[0] : null;
-
-      const resultsCard = document.getElementById('resultsCard'); const summary = document.getElementById('summary'); const details = document.getElementById('details'); const dueBanner = document.getElementById('dueBanner');
-      resultsCard.classList.remove('hidden');
-
-      let s = '';
-      s += `<div class="text-sm text-slate-600 dark:text-slate-300">${t('lastVisitShort')}: <span class="font-medium">${fmt(lastVisit)}</span>`;
-      if (ageYears!=null) s += ` • ${ageGroupToggle.checked ? t('ageGroupLabel') : t('age')}: <span class="font-medium">${ageGroupToggle.checked ? ageGroupLabel : ageYears}</span>`;
-      s += `</div>`;
-
-      if (earliest){
-        s += `<div class="mt-2 text-lg">${t('earliest')}: <span class="font-semibold">${fmt(earliest.nextDate)}</span></div>`;
-        const today0 = new Date(); today0.setHours(0,0,0,0); const diff = daysBetween(earliest.nextDate, today0);
-        dueBanner.classList.remove('hidden');
-        if (diff < 0){ dueBanner.className = 'mt-3 p-3 rounded-xl border text-sm bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-700 text-rose-800 dark:text-rose-200'; dueBanner.textContent = tp('overdueBy', Math.abs(diff)); }
-        else if (diff === 0){ dueBanner.className = 'mt-3 p-3 rounded-xl border text-sm bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'; dueBanner.textContent = t('dueNow'); }
-        else { dueBanner.className = 'mt-3 p-3 rounded-xl border text-sm bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'; dueBanner.textContent = tp('dueIn', diff); }
-      } else { s += `<div class="mt-2 text-lg">${t('noneAuto')}</div>`; dueBanner.classList.add('hidden'); }
-      summary.innerHTML = s;
-
-      const earliestOnly = document.getElementById('earliestOnly').checked; const list = earliestOnly && earliest ? [earliest] : dated;
-      details.innerHTML = '';
-      list.forEach(r => {
-        const row = document.createElement('div'); row.className = 'p-3 border rounded-xl bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600';
-        const windowTxt = r.window ? `${t('window')}: ${fmt(r.window[0])} → ${fmt(r.window[1])}` : '';
-        row.innerHTML = `<div class="font-medium">${r.label}</div>
-          <div class="text-sm text-slate-700 dark:text-slate-300">${t('basis')}: ${r.basis}</div>
-          <div class="text-sm">${t('nextVisit')}: <span class="font-semibold">${fmt(r.nextDate)}</span>${windowTxt?`<div class='text-xs text-slate-600 dark:text-slate-400 mt-1'>${windowTxt}</div>`:''}</div>`;
-        details.appendChild(row);
-      });
-
-      resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-      document.getElementById('copyBtn').onclick = async () => {
-        const conds = selected.map(s=>s.label).join(' • ');
-        const msg = `${t('resultsTitle')}: ${earliest?fmt(earliest.nextDate):'-'}\n${t('lastVisitShort')}: ${fmt(lastVisit)}\n${t('age')}: ${ageYears!=null?(ageGroupToggle.checked?ageGroupLabel:ageYears):'-'}\n${t('condHeader')}: ${conds}`;
-        if (navigator.share){ try{ await navigator.share({ title: document.title, text: msg }); } catch(e){} }
-        try { await navigator.clipboard.writeText(msg); alert(currentLang==='ar'?'تم النسخ.':'Copied.'); } catch(e){}
-      };
-
-      document.getElementById('icsBtn').onclick = () => {
-        if(!earliest) return; const dt = earliest.nextDate; const y = dt.getFullYear(); const m = String(dt.getMonth()+1).padStart(2,'0'); const d = String(dt.getDate()).padStart(2,'0'); const ymd = `${y}${m}${d}`;
-        const conds = selected.map(s=>s.label).join(', ');
-        const title = currentLang==='ar' ? 'موعد فحص عيون موصى به' : 'Recommended ophthalmology visit';
-        const desc = (currentLang==='ar' ? 'مبني على الحالات: ' : 'Based on conditions: ') + conds;
-        const ics = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//OphthoScheduler//EN
-CALSCALE:GREGORIAN
-BEGIN:VEVENT
-UID:${Date.now()}@ophtho
-DTSTAMP:${ymd}T080000Z
-DTSTART;VALUE=DATE:${ymd}
-SUMMARY:${title}
-DESCRIPTION:${desc}
-END:VEVENT
-END:VCALENDAR`;
-        const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'ophthalmology-visit.ics'; a.click(); URL.revokeObjectURL(url);
-      };
-    });
-
-    function showOnlyGeneral(ageYears, ageGroupLabel, lastVisit){
-      const resultsCard = document.getElementById('resultsCard'); const summary = document.getElementById('summary'); const details = document.getElementById('details'); const dueBanner = document.getElementById('dueBanner');
-      resultsCard.classList.remove('hidden');
-      let s = `<div class=\"text-sm text-slate-600 dark:text-slate-300\">${t('lastVisitShort')}: <span class=\"font-medium\">${fmt(lastVisit)}</span>`;
-      if (ageYears!=null) s += ` • ${t('age')}: <span class=\"font-medium\">${ageGroupLabel||ageYears}</span>`; s += `</div>`;
-      let blocks = '';
-      if (ageYears < 40){ s += `<div class="mt-2">${t('adultsUnder40')}</div>`; }
-      else if (ageYears <= 54){ s += `<div class="mt-2 text-lg">${t('window')}: <span class="font-semibold">${fmt(addYears(lastVisit,2))}</span> → <span class="font-semibold">${fmt(addYears(lastVisit,4))}</span></div>`; blocks += block(t('conds.noRiskAdults') + ' (40–54)', t('explain.ageRange'), addYears(lastVisit,2), [addYears(lastVisit,2), addYears(lastVisit,4)]); }
-      else if (ageYears <= 64){ s += `<div class="mt-2 text-lg">${t('window')}: <span class="font-semibold">${fmt(addYears(lastVisit,1))}</span> → <span class="font-semibold">${fmt(addYears(lastVisit,3))}</span></div>`; blocks += block(t('conds.noRiskAdults') + ' (55–64)', t('explain.ageRange'), addYears(lastVisit,1), [addYears(lastVisit,1), addYears(lastVisit,3)]); }
-      else { s += `<div class="mt-2 text-lg">${t('window')}: <span class="font-semibold">${fmt(addYears(lastVisit,1))}</span> → <span class="font-semibold">${fmt(addYears(lastVisit,2))}</span></div>`; blocks += block(t('conds.noRiskAdults') + ' (≥65)', t('explain.ageRange'), addYears(lastVisit,1), [addYears(lastVisit,1), addYears(lastVisit,2)]); }
-      summary.innerHTML = s; dueBanner.classList.add('hidden'); details.innerHTML = blocks; resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function block(title, basis, nextDate, window){ const windowTxt = window ? `${t('window')}: ${fmt(window[0])} → ${fmt(window[1])}` : ''; return `<div class="p-3 border rounded-xl bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
-        <div class="font-medium">${title}</div>
-        <div class="text-sm text-slate-700 dark:text-slate-300">${t('basis')}: ${basis}</div>
-        <div class="text-sm">${t('nextVisit')}: <span class="font-semibold">${fmt(nextDate)}</span>${window?`<div class='text-xs text-slate-600 dark:text-slate-400 mt-1'>${windowTxt}</div>`:''}</div>
-      </div>`; }
+    if(document.getElementById('c_t1dm').checked) recs.push({label:getTx('t1dm'), next:dmNextBySeverity(lastVisit), window:null, basis:(currentLang==='ar'?'حسب شدة السكري':'By diabetes severity')});
+    if(document.getElementById('c_t2dm').checked) recs.push({label:getTx('t2dm'), next:dmNextBySeverity(lastVisit), window:null, basis:(currentLang==='ar'?'حسب شدة السكري':'By diabetes severity')});
 
-    // Language toggle
-    function setLang(lang){
-      currentLang = lang; document.documentElement.lang = lang==='ar'?'ar':'en'; document.documentElement.dir = lang==='ar'?'rtl':'ltr';
-      document.getElementById('title').textContent = t('title');
-      document.getElementById('subtitle').textContent = t('subtitle');
-      document.getElementById('lblAgeGroupToggle').textContent = t('ageGroupToggle');
-      document.getElementById('lblDob').textContent = t('dob');
-      document.getElementById('helpDob').textContent = t('helpDob');
-      document.getElementById('lblLastVisit').textContent = t('lastVisit');
-      document.getElementById('helpLastVisit').textContent = t('helpLastVisit');
-      document.getElementById('condHeader').textContent = t('condHeader');
-      document.getElementById('condHelper').textContent = t('condHelper');
-      document.getElementById('extraHeader').textContent = t('extraHeader');
-      document.getElementById('lblHcqYears').textContent = t('hcqYears');
-      document.getElementById('helpHcq').textContent = t('helpHcq');
-      document.getElementById('lblTamoxYears').textContent = t('tamoxYears');
-      document.getElementById('lblTamoxHighDose').textContent = t('tamoxHighDose');
-      document.getElementById('helpTamox').textContent = t('helpTamox');
-      document.getElementById('lblTedActive').textContent = t('tedActive');
-      document.getElementById('helpTed').textContent = t('helpTed');
-      document.getElementById('lblT1Years').textContent = t('t1Years');
-      document.getElementById('helpT1').textContent = t('helpT1');
-      document.getElementById('btnCalc').textContent = t('btnCalc');
-      document.getElementById('resetBtn').textContent = t('btnReset');
-      document.getElementById('printBtn').textContent = t('btnPrint');
-      document.getElementById('resultsTitle').textContent = t('resultsTitle');
-      document.getElementById('ruleExplain').textContent = t('ruleExplain');
-      document.getElementById('footerText').textContent = t('footer');
-      document.getElementById('lblEarliestOnly').textContent = t('earliestOnly');
-      document.getElementById('copyBtn').textContent = t('copyShare');
-      document.getElementById('icsBtn').textContent = t('addCalendar');
-      document.getElementById('actionsTitle').textContent = t('actionsTitle');
-      document.getElementById('lblAgeGroup').textContent = t('ageGroup');
-      document.getElementById('helpAgeGroup').textContent = t('helpAgeGroup');
-      searchEl.placeholder = t('condSearchPh');
-      clearBtn.textContent = t('condClear');
-      renderDropdown(searchEl.value); renderChips(); toggleExtra();
+    if(document.getElementById('c_antiVEGF').checked) recs.push({label:getTx('antiVEGF'), next:addMonths(lastVisit,1), window:null, basis:(currentLang==='ar'?'متابعة شهرية أثناء العلاج':'Monthly during active therapy')});
+
+    if(document.getElementById('c_hba1c').checked) pushAnnual(getTx('hba1c'), (currentLang==='ar'?'ارتفاع HbA1c: سنوي':'HbA1c high: yearly'));
+
+    if(document.getElementById('c_glp1').checked) pushAnnual(getTx('glp1'), (currentLang==='ar'?'GLP-1/GIP: سنوي':'GLP-1/GIP: yearly'));
+
+    if(document.getElementById('c_ted').checked){
+      var active = document.getElementById('tedActive').checked;
+      if(active){
+        var early=addMonths(lastVisit,3), late=addMonths(lastVisit,6);
+        recs.push({label:getTx('ted'), next:early, window:[early,late], basis:(currentLang==='ar'?'نشِط: كل 3–6 أشهر':'Active: every 3–6 months')});
+      } else {
+        pushAnnual(getTx('ted'), (currentLang==='ar'?'مستقر: سنوي':'Stable: annual'));
+      }
     }
 
-    document.getElementById('lang-ar').addEventListener('click', () => setLang('ar'));
-    document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
-    document.getElementById('earliestOnly').addEventListener('change', () => { const form = document.getElementById('schedulerForm'); form.dispatchEvent(new Event('submit')); });
+    if(document.getElementById('c_retLaser').checked){
+      pushAnnual(getTx('retLaser'), (currentLang==='ar'?'بعد الليزر الشبكي: سنوي':'After retinal laser: yearly'));
+    }
 
-    // Initialize
-    renderDropdown(''); renderChips(); setLang('ar');
+    recs = recs.filter(function(r){return r.next instanceof Date && !isNaN(r.next);})
+               .sort(function(a,b){return a.next - b.next;});
+    var earliest = recs.length?recs[0]:null;
+
+    var s = '<div class="text-sm text-slate-600 dark:text-slate-300">'+TR[currentLang].lastVisitShort+': <span class="font-medium">'+fmt(lastVisit)+'</span>';
+    s += ' • '+(document.getElementById('ageGroupToggle').checked?TR[currentLang].ageGroupLabel:TR[currentLang].age)+': <span class="font-medium">'+(document.getElementById('ageGroupToggle').checked?ageGroupLabel:ageYears)+'</span>';
+    s += '</div>';
+
+    var dueBanner=document.getElementById('dueBanner');
+    if(earliest){
+      s += '<div class="mt-2 text-lg">'+TR[currentLang].earliest+': <span class="font-semibold">'+fmt(earliest.next)+'</span></div>';
+      var diff=daysBetween(earliest.next, new Date());
+      dueBanner.classList.remove('hidden');
+      if(diff<0){ dueBanner.className='mt-3 p-3 rounded-xl border text-sm bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-700 text-rose-800 dark:text-rose-200'; dueBanner.textContent = (currentLang==='ar'?TR.ar.overdueBy(-diff):TR.en.overdueBy(-diff)); }
+      else if(diff===0){ dueBanner.className='mt-3 p-3 rounded-xl border text-sm bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200'; dueBanner.textContent = TR[currentLang].dueNow; }
+      else { dueBanner.className='mt-3 p-3 rounded-xl border text-sm bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'; dueBanner.textContent = (currentLang==='ar'?TR.ar.dueIn(diff):TR.en.dueIn(diff)); }
+    } else {
+      s += '<div class="mt-2 text-lg">'+TR[currentLang].noneAuto+'</div>';
+      dueBanner.classList.add('hidden');
+    }
+    document.getElementById('summary').innerHTML = s;
+
+    var container=document.getElementById('details'); container.innerHTML='';
+    var showEarliestOnly=document.getElementById('earliestOnly').checked;
+    var list = (showEarliestOnly && earliest)?[earliest]:recs;
+    for(var i=0;i<list.length;i++){
+      var r=list[i];
+      var card=document.createElement('div'); card.className='p-3 border rounded-xl bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600';
+      var windowTxt=r.window? (TR[currentLang].window+': '+fmt(r.window[0])+' → '+fmt(r.window[1])) : '';
+      card.innerHTML = '<div class="font-medium">'+r.label+'</div>'
+        + '<div class="text-sm text-slate-700 dark:text-slate-300">'+TR[currentLang].basis+': '+r.basis+'</div>'
+        + '<div class="text-sm">'+TR[currentLang].nextVisit+': <span class="font-semibold">'+fmt(r.next)+'</span>'
+        + (windowTxt?'<div class="text-xs text-slate-600 dark:text-slate-400 mt-1">'+windowTxt+'</div>':'')
+        + '</div>';
+      container.appendChild(card);
+    }
+
+    return false;
+  }
+
+  function onReset(){
+    document.getElementById('schedulerForm').reset();
+    document.getElementById('conditionalFields').classList.add('hidden');
+    document.getElementById('extra-dm-severity').classList.add('hidden');
+    document.getElementById('extra-ted').classList.add('hidden');
+    document.getElementById('resultsCard').classList.add('hidden');
+    clearFieldError('lastVisit'); clearFieldError('dob');
+    document.getElementById('lastVisit').removeAttribute('disabled');
+  }
+
+  // Copy / Share
+  async function copyShare(){
+    var txt = document.getElementById('summary').innerText.trim();
+    if(!txt) return;
+    try{
+      if(navigator.share){
+        await navigator.share({ title: document.title, text: txt });
+        return;
+      }
+    }catch(e){}
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(txt);
+        alert(currentLang==='ar'?'تم النسخ.':'Copied.');
+        return;
+      }
+    }catch(e){}
+    var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); alert(currentLang==='ar'?'تم النسخ.':'Copied.'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  function downloadIcs(){
+    var m=document.getElementById('summary').innerText.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
+    if(!m) return; var dd=m[1], mm=m[2], yy=m[3]; var ymd=yy+mm+dd;
+    var title=(currentLang==='ar')?'موعد فحص عيون موصى به':'Recommended ophthalmology visit';
+    var ics="BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//OphthoScheduler//EN\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nUID:"+Date.now()+"@ophtho\nDTSTAMP:"+ymd+"T080000Z\nDTSTART;VALUE=DATE:"+ymd+"\nSUMMARY:"+title+"\nEND:VEVENT\nEND:VCALENDAR";
+    var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='ophthalmology-visit.ics'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  function getTx(key){ return TR[currentLang].tx[key]; }
+
+  /* ===== Text size: slider logic ===== */
+  function setFontScale(pct){
+    var v = parseInt(pct,10);
+    if(isNaN(v)||v<50||v>300) return;
+    document.documentElement.style.fontSize = v + '%';
+    var lab = document.getElementById('fontPct'); if(lab) lab.textContent = v + '%';
+    try{ localStorage.setItem('oph_font_scale', String(v)); }catch(e){}
+  }
+  (function initFontScale(){
+    var saved = 100;
+    try{
+      var raw = parseInt(localStorage.getItem('oph_font_scale'),10);
+      if(!isNaN(raw)) saved = raw;
+    }catch(e){}
+    var slider = document.getElementById('fontScale');
+    if(slider){ slider.value = saved; }
+    setFontScale(saved);
+  })();
+  /* ===== End text size ===== */
+
+  // Init language
+  setLang('ar');
   </script>
 </body>
 </html>
