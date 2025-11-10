@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ophth-Scheduler | حاسبة مواعيد العيون</title>
-  <meta name="description" content="Ophthalmology visit scheduler in Arabic/English with diabetes severity, anti-VEGF, HbA1c, GLP-1, retinal laser, and more." />
+  <meta name="description" content="Ophthalmology visit scheduler in Arabic/English with diabetes severity, anti-VEGF, HbA1c, retinal laser, and more." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,11 +14,14 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
-    html { scroll-behavior: smooth; } /* default 100% */
+    html { scroll-behavior: smooth; }
     .error-text{color:#dc2626;font-size:12px;margin-top:.25rem}
     .invalid{outline:0;box-shadow:0 0 0 4px rgba(244,63,94,.25);border-color:#ef4444}
     @media print{html{color-scheme:light}body{background:#fff!important}.no-print{display:none!important}}
-    input[type="range"]{accent-color: currentColor;}
+    /* helper for chip checked style */
+    .chip{ @apply px-3 py-1.5 rounded-full border text-sm cursor-pointer select-none transition; }
+    .chip-off{ @apply bg-white text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600; }
+    .chip-on{ @apply bg-indigo-600 text-white border-indigo-600; }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-indigo-50 text-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 dark:text-slate-100">
@@ -26,27 +29,42 @@
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <h1 id="title" class="text-2xl md:text-3xl font-bold">حاسبة مواعيد زيارة طبيب العيون</h1>
       <div class="flex flex-wrap items-center gap-2">
+        <!-- Language -->
         <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600">
           <button id="lang-ar" class="font-medium" type="button" onclick="setLang('ar')">العربية</button>
           <span class="mx-1">|</span>
           <button id="lang-en" type="button" onclick="setLang('en')">English</button>
         </div>
+        <!-- Theme -->
         <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600" title="Theme">
           <button id="theme-light" class="font-medium" type="button" onclick="setTheme('light')">Light</button>
           <span class="mx-1">/</span>
           <button id="theme-dark" type="button" onclick="setTheme('dark')">Dark</button>
         </div>
-        <!-- Text size slider -->
+
+        <!-- TEXT SIZE CONTROLS (Stepper + Presets) -->
         <div class="flex flex-col">
-          <div id="fontControls" dir="ltr" class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600" title="Text size">
-            <span id="fontMinus" class="select-none">A−</span>
-            <input id="fontScale" dir="ltr" type="range" min="80" max="170" step="5" value="100" class="w-28 align-middle" oninput="setFontScale(this.value)" />
-            <span id="fontPlus" class="select-none">A+</span>
-            <span id="fontPct" class="tabular-nums min-w-[3ch] text-xs text-slate-600 dark:text-slate-300">100%</span>
+          <!-- Stepper -->
+          <div class="inline-flex items-center gap-3 rounded-full px-3 py-1 text-sm border border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600">
+            <button id="fontMinus" type="button" class="px-2 rounded-md border border-slate-300 dark:border-slate-600" onclick="decFont()">أ−</button>
+            <div class="min-w-[3.5ch] text-sm tabular-nums text-slate-600 dark:text-slate-300" id="fontPct">100%</div>
+            <button id="fontPlus"  type="button" class="px-2 rounded-md border border-slate-300 dark:border-slate-600" onclick="incFont()">أ+</button>
+            <button id="fontReset" type="button" class="text-xs underline decoration-dotted" onclick="resetFont()">إرجاع 100%</button>
           </div>
-          <div id="fontHelp" class="text-[11px] text-slate-600 dark:text-slate-300 mt-1"></div>
+          <!-- Presets -->
+          <div class="mt-2 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="اختيار حجم النص">
+            <input class="sr-only" type="radio" name="fontPreset" id="presetS" value="90">
+            <label id="chipS" class="chip chip-off" for="presetS">صغير</label>
+            <input class="sr-only" type="radio" name="fontPreset" id="presetD" value="100" checked>
+            <label id="chipD" class="chip chip-on" for="presetD">افتراضي</label>
+            <input class="sr-only" type="radio" name="fontPreset" id="presetL" value="120">
+            <label id="chipL" class="chip chip-off" for="presetL">كبير</label>
+            <input class="sr-only" type="radio" name="fontPreset" id="presetXL" value="140">
+            <label id="chipXL" class="chip chip-off" for="presetXL">أكبر</label>
+          </div>
+          <div id="fontHelp" class="text-[11px] text-slate-600 dark:text-slate-300 mt-1">اضبط الحجم بالأزرار أو اختر حجمًا محددًا.</div>
         </div>
-        <!-- /Text size slider -->
+        <!-- /TEXT SIZE CONTROLS -->
       </div>
     </div>
     <p id="subtitle" class="mt-2 text-slate-600 dark:text-slate-300">اختر الحالات، أدخل عمرك/فئتك العمرية وتاريخ آخر زيارة، وسنحسب أقرب موعد.</p>
@@ -64,13 +82,14 @@
             <a href="mailto:Sultan.Alhassan@hotmail.com" class="underline break-all" dir="ltr">Sultan.Alhassan@hotmail.com</a>
           </div>
           <div><span id="contactPhoneLabel">الهاتف</span>:
-            <a href="tel:+966564215644" class="underline" dir="ltr">+966564215644</a>
+            <a href="https://wa.me/+966564215644" class="underline" dir="ltr">+966564215644</a>
           </div>
         </div>
       </details>
     </div>
     <!-- END CONTACT BOX -->
 
+    <!-- === FORM === -->
     <section class="bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-lg rounded-2xl border border-gray-200 dark:border-slate-700 p-5 md:p-6">
       <form id="schedulerForm" class="space-y-6" novalidate>
         <div class="grid md:grid-cols-2 gap-4">
@@ -97,7 +116,6 @@
             </div>
           </div>
 
-          <!-- Last visit + No-visit option -->
           <div class="space-y-2" id="lastVisitWrap">
             <label for="lastVisit" class="block text-sm font-medium">
               <span id="lblLastVisit">تاريخ آخر زيارة لطبيب العيون</span> <span class="text-rose-600" aria-hidden="true">*</span>
@@ -163,6 +181,7 @@
       </form>
     </section>
 
+    <!-- === RESULTS === -->
     <section id="resultsCard" class="bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-lg rounded-2xl border border-gray-200 dark:border-slate-700 p-5 md:p-6 mt-6 hidden">
       <h2 id="resultsTitle" class="text-xl font-semibold">النتيجة</h2>
 
@@ -194,8 +213,7 @@
   </main>
 
   <script>
-  /* ===== State & i18n ===== */
-  var currentLang = 'ar';
+  /* ===== Theme ===== */
   function setTheme(th){
     var root=document.documentElement;
     if(th==='dark'){root.classList.add('dark');root.classList.remove('light');}
@@ -204,6 +222,8 @@
   }
   (function(){ try{ setTheme(localStorage.getItem('oph_theme')||'light'); }catch(e){ setTheme('light'); } })();
 
+  /* ===== i18n ===== */
+  var currentLang = 'ar';
   var TR = {
     ar: {
       title:"حاسبة مواعيد زيارة طبيب العيون",
@@ -242,9 +262,12 @@
            highMy:"قصر نظر شديد (≤ −6.0D أو طول محوري > 26 مم)",
            ted:"مرض عين درقي (غريفز)", noRisk:"بالغون بلا عوامل خطورة",
            retLaser:"إجراء ليزر للشبكية" },
-      fontMinus:"أ−",
-      fontPlus:"أ+",
-      fontHelp:"حرّك المؤشر لضبط حجم النص."
+      // THEME LABELS
+      themeLight:"فاتح", themeDark:"داكن",
+      // Font controls
+      fontMinus:"أ−", fontPlus:"أ+", fontReset:"إرجاع 100%",
+      presetS:"صغير", presetD:"افتراضي", presetL:"كبير", presetXL:"أكبر",
+      fontHelp:"اضبط الحجم بالأزرار أو اختر حجمًا محددًا."
     },
     en: {
       title:"Ophthalmology Visit Scheduler",
@@ -283,9 +306,10 @@
            highMy:"High myopia (≤ −6.0D or axial length > 26 mm)",
            ted:"Thyroid eye disease (Graves)", noRisk:"Adults without known risk factors",
            retLaser:"Undergone retinal laser" },
-      fontMinus:"A−",
-      fontPlus:"A+",
-      fontHelp:"Use the slider to adjust text size."
+      themeLight:"Light", themeDark:"Dark",
+      fontMinus:"A−", fontPlus:"A+", fontReset:"Reset 100%",
+      presetS:"Small", presetD:"Default", presetL:"Large", presetXL:"Extra-large",
+      fontHelp:"Use the buttons or pick a preset."
     }
   };
 
@@ -330,7 +354,7 @@
     setText('icsBtn', TR[currentLang].addCalendar);
     setText('printBtn', TR[currentLang].btnPrint);
 
-    // Disclaimer + footer
+    // Footer + disclaimer
     setText('disclaimer',   TR[currentLang].disclaimer);
     setText('footerText',   TR[currentLang].footer);
 
@@ -347,10 +371,19 @@
     setText('tx_retLaser', TR[currentLang].tx.retLaser);
     setText('tx_noRisk', TR[currentLang].tx.noRisk);
 
-    // Font slider labels/help
+    // Font controls
     setText('fontMinus', TR[currentLang].fontMinus);
     setText('fontPlus',  TR[currentLang].fontPlus);
-    setText('fontHelp',  TR[currentLang].fontHelp);
+    setText('fontReset', TR[currentLang].fontReset);
+    setText('chipS', TR[currentLang].presetS);
+    setText('chipD', TR[currentLang].presetD);
+    setText('chipL', TR[currentLang].presetL);
+    setText('chipXL', TR[currentLang].presetXL);
+    setText('fontHelp', TR[currentLang].fontHelp);
+
+    // Theme labels
+    setText('theme-light', TR[currentLang].themeLight);
+    setText('theme-dark',  TR[currentLang].themeDark);
   }
   function setText(id, txt){ var el=document.getElementById(id); if(el){ el.textContent = txt; } }
 
@@ -388,7 +421,7 @@
     if(!document.getElementById('resultsCard').classList.contains('hidden')) onCalc();
   }
 
-  /* ===== Main calc ===== */
+  /* ===== MAIN CALC ===== */
   function dmNextBySeverity(baseDate){
     var radios=document.getElementsByName('dmSeverity'); var v='unknown';
     for(var i=0;i<radios.length;i++){ if(radios[i].checked){ v=radios[i].value; break; } }
@@ -446,7 +479,7 @@
 
     if(document.getElementById('c_noRisk').checked){
       if(ageYears<40){
-        // info only
+        // no automatic rule
       } else if(ageYears<=54){
         recs.push({label:getTx('noRisk'), next:addYears(lastVisit,2), window:[addYears(lastVisit,2), addYears(lastVisit,4)], basis:"40–54: كل 2–4 سنوات / every 2–4 yrs"});
       } else if(ageYears<=64){
@@ -519,37 +552,49 @@
     return false;
   }
 
-  function onReset(){
-    document.getElementById('schedulerForm').reset();
-    document.getElementById('conditionalFields').classList.add('hidden');
-    document.getElementById('extra-dm-severity').classList.add('hidden');
-    document.getElementById('extra-ted').classList.add('hidden');
-    document.getElementById('resultsCard').classList.add('hidden');
-    clearFieldError('lastVisit'); clearFieldError('dob');
-    document.getElementById('lastVisit').removeAttribute('disabled');
+  /* ===== Text size controls (Stepper + Presets) ===== */
+  var FONT_MIN=80, FONT_MAX=170, FONT_STEP=5;
+  function applyFontScale(v){
+    document.documentElement.style.fontSize = v + '%';
+    var lab = document.getElementById('fontPct'); if(lab) lab.textContent = v + '%';
+    // update chips
+    var radios = document.querySelectorAll('input[name="fontPreset"]');
+    var closestDiff = 1e9, target=null;
+    radios.forEach(function(r){
+      var val=parseInt(r.value,10), d=Math.abs(val-v);
+      if(d<closestDiff){closestDiff=d; target=r;}
+    });
+    radios.forEach(function(r){
+      var lab = r.id==='presetS'?'chipS': r.id==='presetD'?'chipD': r.id==='presetL'?'chipL':'chipXL';
+      var el = document.getElementById(lab);
+      if(r===target){ r.checked=true; el.classList.remove('chip-off'); el.classList.add('chip-on'); }
+      else { r.checked=false; el.classList.remove('chip-on'); el.classList.add('chip-off'); }
+    });
+    try{ localStorage.setItem('oph_font_scale', String(v)); }catch(e){}
   }
-
-  // Copy / Share
-  async function copyShare(){
-    var txt = document.getElementById('summary').innerText.trim();
-    if(!txt) return;
-    try{
-      if(navigator.share){
-        await navigator.share({ title: document.title, text: txt });
-        return;
-      }
-    }catch(e){}
-    try{
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        await navigator.clipboard.writeText(txt);
-        alert(currentLang==='ar'?'تم النسخ.':'Copied.');
-        return;
-      }
-    }catch(e){}
-    var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); alert(currentLang==='ar'?'تم النسخ.':'Copied.'); }catch(e){}
-    document.body.removeChild(ta);
+  function setFontScale(v){
+    v = Math.max(FONT_MIN, Math.min(FONT_MAX, parseInt(v,10)||100));
+    applyFontScale(v);
   }
+  function incFont(){ var cur=getCurrentScale(); setFontScale(cur+FONT_STEP); }
+  function decFont(){ var cur=getCurrentScale(); setFontScale(cur-FONT_STEP); }
+  function resetFont(){ setFontScale(100); }
+  function getCurrentScale(){
+    var saved=100; try{ var raw=parseInt(localStorage.getItem('oph_font_scale'),10); if(!isNaN(raw)) saved=raw; }catch(e){}
+    return saved;
+  }
+  function wireFontPresets(){
+    document.querySelectorAll('input[name="fontPreset"]').forEach(function(r){
+      r.addEventListener('change', function(e){ setFontScale(parseInt(e.target.value,10)); });
+    });
+  }
+  (function initFont(){
+    wireFontPresets();
+    var saved = 100;
+    try{ var raw = parseInt(localStorage.getItem('oph_font_scale'),10); if(!isNaN(raw)) saved=raw; }catch(e){}
+    applyFontScale(saved);
+  })();
+  /* ===== End text size ===== */
 
   function downloadIcs(){
     var m=document.getElementById('summary').innerText.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
@@ -559,30 +604,20 @@
     var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'}); var url=URL.createObjectURL(blob);
     var a=document.createElement('a'); a.href=url; a.download='ophthalmology-visit.ics'; a.click(); URL.revokeObjectURL(url);
   }
-
+  function copyShare(){
+    var txt = document.getElementById('summary').innerText.trim();
+    if(!txt) return;
+    (async ()=> {
+      try{ if(navigator.share){ await navigator.share({ title: document.title, text: txt }); return; } }catch(e){}
+      try{ if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(txt); alert(currentLang==='ar'?'تم النسخ.':'Copied.'); return; } }catch(e){}
+      var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); alert(currentLang==='ar'?'تم النسخ.':'Copied.'); }catch(e){}
+      document.body.removeChild(ta);
+    })();
+  }
   function getTx(key){ return TR[currentLang].tx[key]; }
 
-  /* ===== Text size: slider logic ===== */
-  function setFontScale(pct){
-    var v = parseInt(pct,10);
-    if(isNaN(v)||v<50||v>300) return;
-    document.documentElement.style.fontSize = v + '%';
-    var lab = document.getElementById('fontPct'); if(lab) lab.textContent = v + '%';
-    try{ localStorage.setItem('oph_font_scale', String(v)); }catch(e){}
-  }
-  (function initFontScale(){
-    var saved = 100;
-    try{
-      var raw = parseInt(localStorage.getItem('oph_font_scale'),10);
-      if(!isNaN(raw)) saved = raw;
-    }catch(e){}
-    var slider = document.getElementById('fontScale');
-    if(slider){ slider.value = saved; }
-    setFontScale(saved);
-  })();
-  /* ===== End text size ===== */
-
-  // Init language
+  // Init language (Arabic default) and ensure theme labels localized
   setLang('ar');
   </script>
 </body>
